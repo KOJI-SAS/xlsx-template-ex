@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as moment from 'moment';
 import { CellRange } from './cell-range';
-import { TemplateExpression, TemplatePipe } from './template-expression';
+import { TemplateExpression, TemplatePipe, Pipe } from './template-expression';
 import { WorkSheetHelper } from './worksheet-helper';
 import { Cell } from "exceljs";
 
@@ -9,12 +9,18 @@ export class TemplateEngine {
   private readonly regExpBlocks: RegExp = /\[\[.+?]]/g;
   private readonly regExpValues: RegExp = /{{.+?}}/g;
 
+  private pipes: Pipe[] = [];
+
   constructor(private wsh: WorkSheetHelper, private data: any) {
   }
 
   public execute(): void {
     this.processBlocks(this.wsh.getSheetDimension(), this.data);
     this.processValues(this.wsh.getSheetDimension(), this.data);
+  }
+
+  public registerPipe(pipe: Pipe) {
+    this.pipes.push(pipe);
   }
 
   private processBlocks(cellRange: CellRange, data: any): CellRange {
@@ -120,8 +126,13 @@ export class TemplateEngine {
             value = this.valuePipeNumber(value);
             break;
           default:
-            value = 'xlsx-template-ex: The value pipe not found:' + pipe.pipeName;
-            console.warn(value);
+            const customPipe = this.pipes.find(_ => _.name === pipe.pipeName)
+            if (customPipe) {
+              value = customPipe.handler(value, ...pipe.pipeParameters);
+            } else {
+              value = 'xlsx-template-ex: The value pipe not found:' + pipe.pipeName;
+              console.warn(value);
+            }
         }
       });
     } catch (error) {

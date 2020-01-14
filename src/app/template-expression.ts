@@ -18,3 +18,8 @@ export class TemplateExpression {
     });
   }
 }
+
+export interface Pipe {
+  name: string;
+  handler(data?: string, ...parameters: string[]): any;
+}
