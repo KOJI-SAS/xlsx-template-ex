@@ -6,10 +6,15 @@ import { WorkSheetHelper } from './worksheet-helper';
 import { Cell } from "exceljs";
 
 export class TemplateEngine {
+
+  private static pipes: Pipe[] = [];
+
+  public static registerPipe(pipe: Pipe) {
+    TemplateEngine.pipes.push(pipe);
+  }
+
   private readonly regExpBlocks: RegExp = /\[\[.+?]]/g;
   private readonly regExpValues: RegExp = /{{.+?}}/g;
-
-  private pipes: Pipe[] = [];
 
   constructor(private wsh: WorkSheetHelper, private data: any) {
   }
@@ -19,9 +24,6 @@ export class TemplateEngine {
     this.processValues(this.wsh.getSheetDimension(), this.data);
   }
 
-  public registerPipe(pipe: Pipe) {
-    this.pipes.push(pipe);
-  }
 
   private processBlocks(cellRange: CellRange, data: any): CellRange {
     if (!cellRange.valid) {
@@ -126,7 +128,7 @@ export class TemplateEngine {
             value = this.valuePipeNumber(value);
             break;
           default:
-            const customPipe = this.pipes.find(_ => _.name === pipe.pipeName)
+            const customPipe = TemplateEngine.pipes.find(_ => _.name === pipe.pipeName)
             if (customPipe) {
               value = customPipe.handler(value, ...pipe.pipeParameters);
             } else {
